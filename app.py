@@ -183,124 +183,144 @@ def submit_exchange_uid(supabase: Client, user_id, uid):
         return False
 
 # --- 2. Sidebar (User & Settings) ---
-with st.sidebar:
-    st.header("👤 User Profile")
+# --- 2. Sidebar (User & Settings) ---
+
+def register_user(supabase: Client, user_id, password):
+    try:
+        supabase.table("users").insert({"user_id": user_id, "password": password, "is_premium": False}).execute()
+        return True
+    except:
+        return False
+
+# [Mobile Optimization] Check Login Status FIRST
+# If NOT logged in, show Login UI in Main Area (not Sidebar)
+if not st.session_state.user_id:
     
-    # [Auth System] Implementation
-    if st.session_state.user_id:
-        st.success(f"**Welcome, {st.session_state.user_id}!**")
-        if st.button("🚪 Logout", type="secondary"):
-            st.session_state.user_id = ""
-            st.session_state.history = []
-            st.session_state.full_history = []
-            st.rerun()
-    else:
-        with st.form("login_form"):
-            uid_input = st.text_input("Nickname (ID)", key="login_id").strip()
-            pw_input = st.text_input("Password", type="password", key="login_pw").strip()
-            
-            c1, c2 = st.columns(2)
-            with c1:
-                btn_login = st.form_submit_button("Login", type="primary")
-            with c2:
-                btn_register = st.form_submit_button("Register New")
-
-            if btn_login:
-                supabase = init_supabase()
-                if not uid_input or not pw_input:
-                    st.error("Enter ID and Password.")
-                else:
-                    user_data = verify_user(supabase, uid_input, pw_input)
-                    if user_data:
-                        # SUCCESS LOGIN
-                        st.session_state.user_id = uid_input
-                        # Check Premium Status (Default False if key missing)
-                        st.session_state.is_premium = user_data[0].get("is_premium", False)
-                        
-                        # Load Data immediately
-                        with st.spinner(f"☁️ Syncing data..."):
-                            full, recent = load_data_from_supabase(supabase, uid_input)
-                            st.session_state.full_history = full
-                            st.session_state.history = recent
-                        st.success("Login Success!")
-                        st.rerun()
+    # Spacer for centering vertically (optional, but good for mobile)
+    st.write("")
+    
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col2:
+        st.title("After The Trade")
+        st.markdown("### Professional Trading Journal")
+        st.divider()
+        
+        tab_login, tab_reg = st.tabs(["Login", "Register"])
+        
+        with tab_login:
+            with st.form("login_form_main"):
+                uid_input = st.text_input("Nickname (ID)", key="login_id_main").strip()
+                pw_input = st.text_input("Password", type="password", key="login_pw_main").strip()
+                
+                # Full width button
+                if st.form_submit_button("Login", type="primary", use_container_width=True):
+                    supabase = init_supabase()
+                    if not uid_input or not pw_input:
+                        st.error("Enter ID and Password.")
                     else:
-                        st.error("Invalid ID or Password.")
-
-            if btn_register:
-                supabase = init_supabase()
-                if not uid_input or not pw_input:
-                    st.error("Enter ID and Password.")
-                else:
-                    if check_user_exists(supabase, uid_input):
-                        st.error("User ID already exists. Try logging in.")
-                    else:
-                        if register_user(supabase, uid_input, pw_input):
-                            # SUCCESS REGISTER
+                        user_data = verify_user(supabase, uid_input, pw_input)
+                        if user_data:
+                            # SUCCESS
                             st.session_state.user_id = uid_input
-                            st.session_state.full_history = []
-                            st.session_state.history = []
-                            st.success("Registered & Logged in!")
+                            st.session_state.is_premium = user_data[0].get("is_premium", False)
+                            
+                            with st.spinner(f"☁️ Syncing data..."):
+                                full, recent = load_data_from_supabase(supabase, uid_input)
+                                st.session_state.full_history = full
+                                st.session_state.history = recent
+                            st.success("Login Success!")
                             st.rerun()
                         else:
-                            st.error("Registration failed.")
+                            st.error("Invalid ID or Password.")
+
+        with tab_reg:
+            with st.form("register_form_main"):
+                new_uid = st.text_input("New ID", key="reg_id_main").strip()
+                new_pw = st.text_input("New Password", type="password", key="reg_pw_main").strip()
+                
+                if st.form_submit_button("Register New Account", use_container_width=True):
+                    supabase = init_supabase()
+                    if not new_uid or not new_pw:
+                        st.error("Enter ID and Password.")
+                    else:
+                        if check_user_exists(supabase, new_uid):
+                            st.error("User ID already exists. Try logging in.")
+                        else:
+                            if register_user(supabase, new_uid, new_pw):
+                                st.session_state.user_id = new_uid
+                                st.session_state.full_history = []
+                                st.session_state.history = []
+                                st.success("Registered & Logged in!")
+                                st.rerun()
+                            else:
+                                st.error("Registration failed.")
+        
+    st.write("")
+    st.info("🔒 Please Login to access your dashboard.")
+    
+    # [CRITICAL] Stop the rest of the app from loading
+    st.stop()
+
+# --- Everything below this line only runs if Logged In ---
+
+# Sidebar for User Profile & Settings
+with st.sidebar:
+    st.header("👤 User Profile")
+    st.success(f"**Welcome, {st.session_state.user_id}!**")
+    
+    if st.button("🚪 Logout", type="secondary"):
+        st.session_state.user_id = ""
+        st.session_state.history = []
+        st.session_state.full_history = []
+        st.rerun()
         
     st.divider()
     
-    if st.session_state.user_id:
-        st.header("⚙️ Settings")
-        
-        # Unlock Full Access (UID Submission)
-        # Show ONLY if Premium (Badge) OR if User hit the limit (Input Form)
-        is_hit_limit = len(st.session_state.full_history) >= 20
-        show_unlock_section = st.session_state.is_premium or is_hit_limit
-
-        if show_unlock_section:
-            st.markdown("##### 🔓 Unlock Full Access")
-            if st.session_state.is_premium:
-                st.success("👑 **Premium Member** (Unlimited Access)")
-            else:
-                with st.expander("Submit UID"):
-                    st.caption("Sign up via our link & submit UID to bypass limits.")
-                    ex_uid = st.text_input("Exchange UID", placeholder="e.g. 12345678")
-                    if st.button("Submit Request"):
-                        supabase = init_supabase()
-                        if submit_exchange_uid(supabase, st.session_state.user_id, ex_uid):
-                            st.info("✅ Request sent! Waiting for admin approval.")
-                st.divider()
-
-        api_key_input = st.text_input("OpenAI API Key", type="password")
-        if api_key_input:
-            openai.api_key = api_key_input
-        st.divider()
+    st.header("⚙️ Settings")
     
-    # [Conditional] Only show Goldfish Banner if trades >= 18
-    # [Conditional] Only show Goldfish Banner if trades >= 18 and NOT premium
+    # Unlock Full Access (UID Submission)
+    is_hit_limit = len(st.session_state.full_history) >= 20
+    show_unlock_section = st.session_state.is_premium or is_hit_limit
+
+    if show_unlock_section:
+        st.markdown("##### 🔓 Unlock Full Access")
+        if st.session_state.is_premium:
+            st.success("👑 **Premium Member** (Unlimited Access)")
+        else:
+            with st.expander("Submit UID"):
+                st.caption("Sign up via our link & submit UID to bypass limits.")
+                ex_uid = st.text_input("Exchange UID", placeholder="e.g. 12345678")
+                if st.button("Submit Request"):
+                    supabase = init_supabase()
+                    if submit_exchange_uid(supabase, st.session_state.user_id, ex_uid):
+                        st.info("✅ Request sent! Waiting for admin approval.")
+            st.divider()
+
+    api_key_input = st.text_input("OpenAI API Key", type="password")
+    if api_key_input:
+        openai.api_key = api_key_input
+    st.divider()
+    
+    # Goldfish Banner
     is_premium = st.session_state.get("is_premium", False)
     if (len(st.session_state.full_history) >= 18) and (not is_premium):
         st.info("🟢 **Displaying recent 20 trades only.\n(Unlimited history is saved securely)")
     
-    st.markdown("---") # Divider
+    st.markdown("---") 
     
-    # [Smart Logic] 유저 상태에 따라 멘트와 색상 변경
-    # 1. 기록이 20개 넘어서 잠긴 사람 -> "Unlock" 강조 (빨간맛/보라맛)
-    # 2. 아직 널널한 사람 -> "Community" 강조 (파란맛/편안함)
-    
-    is_premium = st.session_state.get("is_premium", False)
+    # Community / Ad Button
     is_locked_user = (len(st.session_state.full_history) > 20) and (not is_premium)
-    discord_link_sidebar = "https://discord.gg/QRZAh6Zj" # 형님 초대 링크
+    discord_link_sidebar = "https://discord.gg/QRZAh6Zj" 
 
     if is_locked_user:
-        # [Case A] 잠긴 유저 (Unlock 유도)
         btn_text = "🔓 Unlock Full Access"
         btn_sub = "Recover your archives"
-        btn_color = "#FF4B4B" # 빨간색 (경고/주목)
+        btn_color = "#FF4B4B"
         hover_color = "#D93A3A"
     else:
-        # [Case B] 일반 유저 (커뮤니티 홍보)
         btn_text = "💬 Join Community"
         btn_sub = "Share strategies & chat"
-        btn_color = "#5865F2" # 디스코드 근본 보라색
+        btn_color = "#5865F2" 
         hover_color = "#4752C4"
 
     st.markdown(f"""
@@ -324,11 +344,6 @@ with st.sidebar:
             </div>
         </a>
     """, unsafe_allow_html=True)
-    
-    # [Crucial] Gate the Main Pipeline at the VERY END of Sidebar
-    if not st.session_state.user_id:
-        st.info("🔒 Please Login/Register to access your dashboard.")
-        st.stop()
 
 # --- 3. Main Pipeline ---
 st.title("📊 Trading Dashboard")
