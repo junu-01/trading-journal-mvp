@@ -352,10 +352,6 @@ st.title("📊 Trading Dashboard")
 if st.session_state.stage == "PRE_TRADING":
     st.subheader("STEP 1: Preparation")
     
-    # [Conditional] Only show Warning if trades >= 18
-    if len(st.session_state.full_history) >= 18:
-        st.warning("🟢 **Showing recent 20 trades only.(Unlimited inputs are saved safely).**")
-
     # Analytics Shortcut
     if st.button("📊 View Performance Analytics (Skip to Dashboard)"):
         st.session_state.stage = "ANALYTICS"
@@ -371,11 +367,11 @@ if st.session_state.stage == "PRE_TRADING":
             if full:
                 st.session_state.full_history = full
                 st.session_state.history = recent
-                st.success(f"✅ Synced: {len(full)} total trades (Showing last {len(recent)}).")
+                # Data synced silently
             else:
-                st.warning("No trade history found.")
+                pass # No data found
     elif st.session_state.history:
-        st.success(f"✅ Ready: Showing recent {len(st.session_state.history)} trades.")
+        # Show Resync button if data exists
         if st.button("🔄 Force Resync"):
              st.session_state.full_history = []
              st.session_state.history = []
@@ -674,8 +670,9 @@ elif st.session_state.stage == "POST_TRADING":
 elif st.session_state.stage == "ANALYTICS":
     st.subheader("📊 Performance Analytics")
     
-    # [Conditional] Only show Warning if trades >= 15
-    if len(st.session_state.full_history) >= 15:
+    # [Conditional] Only show Warning if trades >= 18 and NOT Premium
+    is_premium = st.session_state.get("is_premium", False)
+    if (len(st.session_state.full_history) >= 18) and (not is_premium):
         st.warning("🟢 **Showing analysis for recent 20 trades only.**")
     
     # [Mod] "Tantalizing Data Lock" Implementation
@@ -734,9 +731,8 @@ elif st.session_state.stage == "ANALYTICS":
         top_left, top_right = st.columns([1, 1], gap="medium")
         
         with top_left:
-            st.markdown("##### ⚙️ Filters & Metrics (Recent 20)")
+            st.markdown("##### ⚙️ Filters & Metrics")
             
-            # 1. Filters (Applied to Analytics DF primarily)
             # 1. Filters (Applied to Analytics DF primarily)
             f_col1, f_col2, f_col3 = st.columns(3)
             with f_col1:
