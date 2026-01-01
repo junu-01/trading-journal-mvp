@@ -715,7 +715,7 @@ with st.sidebar:
     
     is_premium = st.session_state.get("is_premium", False)
     if (len(st.session_state.full_history) >= 18) and (not is_premium):
-        st.info("🟢 **Displaying recent 20 trades only.\n(Unlimited history is saved securely)")
+        st.info("🟢 This journal focuses on your most recent 20 trades by design.\nOlder trades are safely archived.")
     
     st.markdown("---") 
     
@@ -723,8 +723,8 @@ with st.sidebar:
     discord_link_sidebar = "https://discord.gg/QRZAh6Zj" 
 
     if is_locked_user:
-        btn_text = "🔓 Unlock Full Access"
-        btn_sub = "Recover your archives"
+        btn_text = "Access Trade Archive"
+        btn_sub = "Optional. No impact on your current journaling flow."
         btn_color = "#FF4B4B"
         btn_color_hover = "#D93A3A"
     else:
@@ -1310,7 +1310,7 @@ elif st.session_state.stage == "ANALYTICS":
     
     is_premium = st.session_state.get("is_premium", False)
     if (len(st.session_state.full_history) >= 18) and (not is_premium):
-        st.warning("🟢 **Showing analysis for recent 20 trades only.**")
+        st.warning("🟢 **Focused analysis based on your most recent trades.**")
     
     full_data = st.session_state.full_history if st.session_state.full_history else []
     
@@ -1492,7 +1492,7 @@ elif st.session_state.stage == "ANALYTICS":
         st.divider()
         
         st.markdown("### 📋 Trade History (Full History)")
-        st.caption("Older trades are locked to save space & focus on current performance.")
+        st.caption("Older trades are archived to save space and focus on current performance.")
         
         df_table = df_all.copy()
         
@@ -1510,13 +1510,13 @@ elif st.session_state.stage == "ANALYTICS":
         
         for idx in df_table.index:
             if df_table.loc[idx, 'is_locked']:
-                df_table.loc[idx, 'ticker'] = "🔒 Locked"
+                df_table.loc[idx, 'ticker'] = "🔒 Archived"
                 df_table.loc[idx, 'strategy_name'] = "****"
-                df_table.loc[idx, 'result_status'] = "Locked"
+                df_table.loc[idx, 'result_status'] = "Archived"
                 df_table.loc[idx, 'profit'] = 0.0
                 df_table.loc[idx, 'roi'] = 0.0
                 df_table.loc[idx, 'mood'] = "🔒"
-                df_table.loc[idx, 'Detail'] = "Contact us to unlock your full history."
+                df_table.loc[idx, 'Detail'] = "This trade is archived to keep your review focused."
         
         if strategy_filter:
             mask_strategy = df_table['strategy_name'].astype(str).isin(strategy_filter)
@@ -1587,8 +1587,8 @@ elif st.session_state.stage == "ANALYTICS":
             
             if record['is_locked']:
                 with st.container():
-                     st.warning("🔒 **Archived Trade Locked**")
-                     st.info("To unlock your full history and support us via a partner link, please contact us through the button below.")
+                     st.warning("**Archived Trade**")
+                     st.info("TThis trade is archived to keep your review focused. Supporting the project gives access to full trade history.")
                      
                      discord_link = "https://discord.gg/QRZAh6Zj" 
 
