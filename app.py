@@ -697,7 +697,7 @@ with st.sidebar:
     if show_unlock_section:
         st.markdown("##### 🔓 Trade History")
         if st.session_state.is_premium:
-            st.success("👑 **Premium Member** (Unlimited Access)")
+            st.success("**✔ Archive Access Enabled** (Project Supporter)")
         else:
             with st.expander("Submit UID"):
                 st.caption("To access archived trades, verify your exchange account below.")
