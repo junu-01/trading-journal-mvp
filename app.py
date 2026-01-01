@@ -973,11 +973,12 @@ elif st.session_state.stage == "TRADING":
                     return;
                 }}
                 
+                // Mathematical calculation to avoid Timezone issues
                 const totalSeconds = Math.floor(diff / 1000);
                 const hours = Math.floor(totalSeconds / 3600);
                 const remainder = totalSeconds % 3600;
                 const minutes = Math.floor(remainder / 60);
-                const seconds = remainder % 60;
+                const seconds = totalSeconds % 60;
                 
                 const h = hours.toString().padStart(2, '0');
                 const m = minutes.toString().padStart(2, '0');
