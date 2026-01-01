@@ -19,6 +19,11 @@ COLOR_PROFIT = '#2E7D32'
 
 st.set_page_config(page_title="Trading Dashboard", layout="wide")
 
+# --- 1. Timezone Setup (KST) ---
+# FIX: Define KST explicitly to prevent UTC server issues
+KST = timezone(timedelta(hours=9))
+
+
 # --- [UI Upgrade] Custom CSS Injection ---
 def step1_css():
     st.markdown("""
@@ -850,8 +855,8 @@ if st.session_state.stage == "PRE_TRADING":
                     "strategy_name": strategy_name,
                     "strategy": strategy_detail,
                     "mood": mood,
-                    "entry_time": datetime.now(),
-                    "entry_time_str": datetime.now().strftime("%H:%M:%S")
+                    "entry_time": datetime.now(KST), # FIX: Use KST
+                    "entry_time_str": datetime.now(KST).strftime("%H:%M:%S") # FIX: Use KST
                 }
                 st.session_state.stage = "TRADING"
                 st.session_state.analysis_result = None
@@ -878,18 +883,25 @@ elif st.session_state.stage == "TRADING":
         </div>
     """, unsafe_allow_html=True)
     
-    data = st.session_state.trade_data
+    datetime_now_kst = datetime.now(KST)
     
     # Calculate Start Time
-    entry_time = data.get("entry_time", datetime.now())
+    entry_time = data.get("entry_time", datetime_now_kst)
     if isinstance(entry_time, str):
         try: entry_time = datetime.fromisoformat(entry_time)
-        except: entry_time = datetime.now()
+        except: entry_time = datetime_now_kst
+    
+    # Ensure entry_time is aware (Handle legacy data)
+    if entry_time.tzinfo is None:
+        entry_time = entry_time.replace(tzinfo=KST)
         
     start_time_iso = entry_time.isoformat()
+    # FIX: Pass Epoch Milliseconds to JS to avoid parsing ambiguity
+    start_time_ts = int(entry_time.timestamp() * 1000)
+    
     start_time_display = entry_time.strftime("%p %I:%M Start")
 
-    # 3. Real-time JS Timer (Dark Blue Card)
+    # 3. Real-time JS Timer (Fixed Timezone)
     # Note: Streamlit styling doesn't pass to iframe, so we must inline CSS.
     timer_html = f"""
     <!DOCTYPE html>
@@ -903,7 +915,7 @@ elif st.session_state.stage == "TRADING":
                 font-family: 'Inter', sans-serif;
             }}
             .timer-card {{
-                background-color: #1E293B; /* Slate 800 */
+                background-color: #1E293B;
                 border-radius: 16px;
                 padding: 20px;
                 text-align: center;
@@ -913,7 +925,7 @@ elif st.session_state.stage == "TRADING":
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                height: 140px; /* Fixed height for consistency */
+                height: 140px;
                 box-sizing: border-box;
                 box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             }}
@@ -962,7 +974,8 @@ elif st.session_state.stage == "TRADING":
             <div class="timer-sub">{start_time_display}</div>
         </div>
         <script>
-            const startTime = new Date("{start_time_iso}").getTime();
+            // FIX: Use Epoch Milliseconds directly
+            const startTime = {start_time_ts};
             
             function updateTimer() {{
                 const now = new Date().getTime();
@@ -973,7 +986,6 @@ elif st.session_state.stage == "TRADING":
                     return;
                 }}
                 
-                // Mathematical calculation to avoid Timezone issues
                 const totalSeconds = Math.floor(diff / 1000);
                 const hours = Math.floor(totalSeconds / 3600);
                 const remainder = totalSeconds % 3600;
@@ -1060,8 +1072,8 @@ elif st.session_state.stage == "TRADING":
     with c_end2:
         # Styled Red via CSS (primary)
         if st.button("⏹ End Trade", type="primary", use_container_width=True):
-            st.session_state.trade_data["exit_time"] = datetime.now()
-            st.session_state.trade_data["exit_time_str"] = datetime.now().strftime("%H:%M:%S")
+            st.session_state.trade_data["exit_time"] = datetime.now(KST) # FIX: KST
+            st.session_state.trade_data["exit_time_str"] = datetime.now(KST).strftime("%H:%M:%S")
             st.session_state.trade_data["memos"] = st.session_state.memos
             st.session_state.stage = "POST_TRADING"
             st.rerun()
@@ -1188,11 +1200,16 @@ elif st.session_state.stage == "POST_TRADING":
                 roi = (profit / data['start_balance'] * 100) if data['start_balance'] > 0 else 0
                 
                 # Calculate Duration
-                entry_dt = data.get("entry_time", datetime.now())
+                entry_dt = data.get("entry_time", datetime.now(KST))
                 if isinstance(entry_dt, str):
                     try: entry_dt = datetime.fromisoformat(entry_dt)
-                    except: entry_dt = datetime.now()
-                exit_dt = datetime.now()
+                    except: entry_dt = datetime.now(KST)
+                
+                # Ensure entry_dt is aware
+                if entry_dt.tzinfo is None:
+                    entry_dt = entry_dt.replace(tzinfo=KST)
+                    
+                exit_dt = datetime.now(KST) # FIX: KST
                 duration = exit_dt - entry_dt
                 minutes_duration = duration.total_seconds() / 60
 
