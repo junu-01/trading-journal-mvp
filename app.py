@@ -1588,7 +1588,7 @@ elif st.session_state.stage == "ANALYTICS":
             if record['is_locked']:
                 with st.container():
                      st.warning("**Archived Trade**")
-                     st.info("TThis trade is archived to keep your review focused. Supporting the project gives access to full trade history.")
+                     st.info("This trade is archived to keep your review focused.\nSupport is optional — join the Discord to access full history and shared trading ideas.")
                      
                      discord_link = "https://discord.gg/QRZAh6Zj" 
 
@@ -1609,7 +1609,7 @@ elif st.session_state.stage == "ANALYTICS":
                                 border: 1px solid #4752C4;
                             " onmouseover="this.style.backgroundColor='#4752C4'; this.style.transform='translateY(-2px)';" 
                               onmouseout="this.style.backgroundColor='#5865F2'; this.style.transform='translateY(0px)';">
-                                💬 Join Discord to Unlock
+                                💬 Join Discord
                             </div>
                         </a>
                     """, unsafe_allow_html=True)
