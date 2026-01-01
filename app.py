@@ -695,12 +695,12 @@ with st.sidebar:
     show_unlock_section = st.session_state.is_premium or is_hit_limit
 
     if show_unlock_section:
-        st.markdown("##### 🔓 Unlock Full Access")
+        st.markdown("##### 🔓 Trade History")
         if st.session_state.is_premium:
             st.success("👑 **Premium Member** (Unlimited Access)")
         else:
             with st.expander("Submit UID"):
-                st.caption("Sign up via our link & submit UID to bypass limits.")
+                st.caption("To access archived trades, verify your exchange account below.")
                 ex_uid = st.text_input("Exchange UID", placeholder="e.g. 12345678")
                 if st.button("Submit Request"):
                     supabase = init_supabase()
