@@ -883,6 +883,8 @@ elif st.session_state.stage == "TRADING":
         </div>
     """, unsafe_allow_html=True)
     
+    data = st.session_state.get("trade_data", {})
+
     datetime_now_kst = datetime.now(KST)
     
     # Calculate Start Time
